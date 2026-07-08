@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FolderGit2, Plus, Loader2, X } from "lucide-react";
+import { FolderGit2, Plus, Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useProjects, useCreateProject } from "../hooks/use-project";
 import axios from "axios";
 
@@ -10,7 +10,10 @@ interface ProjectListProps {
 }
 
 export default function ProjectList({ workspaceId }: ProjectListProps) {
-  const { data: projectsData, isLoading: isProjectsLoading } = useProjects(workspaceId);
+  const [page, setPage] = useState(1);
+  const LIMIT = 6;
+
+  const { data: projectsData, isLoading: isProjectsLoading } = useProjects(workspaceId, page, LIMIT);
   const createProjectMutation = useCreateProject(workspaceId);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,7 +57,7 @@ export default function ProjectList({ workspaceId }: ProjectListProps) {
       {/* Projects Title and Add Button */}
       <div className="flex justify-between items-center border-b border-zinc-800/80 pb-3">
         <h2 className="text-lg font-bold text-white tracking-tight">
-          Projects ({projects.length})
+          Projects
         </h2>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -82,31 +85,51 @@ export default function ProjectList({ workspaceId }: ProjectListProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="glass-panel-glow border border-white/5 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 space-y-4 flex flex-col justify-between"
-            >
-              <div className="space-y-2">
-                <div className="flex justify-between items-start">
-                  <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
-                    <FolderGit2 className="w-5 h-5" />
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="glass-panel-glow border border-white/5 rounded-xl p-6 hover:border-primary/30 transition-all duration-300 space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                      <FolderGit2 className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                      {project.status}
+                    </span>
                   </div>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
-                    {project.status}
-                  </span>
+                  <h3 className="text-lg font-semibold text-white truncate">{project.name}</h3>
+                  {project.description && (
+                    <p className="text-sm text-zinc-400 line-clamp-2">{project.description}</p>
+                  )}
                 </div>
-                <h3 className="text-lg font-semibold text-white truncate">{project.name}</h3>
-                {project.description && (
-                  <p className="text-sm text-zinc-400 line-clamp-2">{project.description}</p>
-                )}
+                <div className="pt-4 border-t border-zinc-800/60 flex items-center justify-between text-[10px] text-zinc-500 font-mono">
+                  <span>Created: {new Date(project.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
-              <div className="pt-4 border-t border-zinc-800/60 flex items-center justify-between text-[10px] text-zinc-500 font-mono">
-                <span>Created: {new Date(project.created_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Pagination Arrows */}
+          <div className="flex justify-end items-center gap-3 pt-4">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-primary/30 disabled:opacity-40 disabled:hover:border-zinc-800 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={projects.length < LIMIT}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-primary/30 disabled:opacity-40 disabled:hover:border-zinc-800 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 

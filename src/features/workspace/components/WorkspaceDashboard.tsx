@@ -2,14 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LayoutDashboard, Plus, Loader2, X, FolderKanban } from "lucide-react";
-import { useOwnedWorkspaces, useCreateWorkspace } from "../hooks/use-workspace";
+import { LayoutDashboard, Plus, Loader2, X, FolderKanban, ChevronLeft, ChevronRight } from "lucide-react";
+import { useOwnedWorkspaces, useJoinedWorkspaces, useCreateWorkspace } from "../hooks/use-workspace";
 import axios from "axios";
 
 export default function WorkspaceDashboard() {
-  const { data, isLoading } = useOwnedWorkspaces();
+  const [activeTab, setActiveTab] = useState<"owned" | "joined">("owned");
+  const [ownedPage, setOwnedPage] = useState(1);
+  const [joinedPage, setJoinedPage] = useState(1);
+  const LIMIT = 6;
+
+  const { data: ownedData, isLoading: isOwnedLoading } = useOwnedWorkspaces(ownedPage, LIMIT);
+  const { data: joinedData, isLoading: isJoinedLoading } = useJoinedWorkspaces(joinedPage, LIMIT);
   const createWorkspaceMutation = useCreateWorkspace();
-  const workspaces = data?.data || [];
+
+  const ownedWorkspaces = ownedData?.data || [];
+  const joinedWorkspaces = joinedData?.data || [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState("");
@@ -60,14 +68,10 @@ export default function WorkspaceDashboard() {
       : (createWorkspaceMutation.error as Error).message || "An error occurred."
     : null;
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
-        <p className="text-zinc-400 text-sm">Loading workspaces...</p>
-      </div>
-    );
-  }
+  const isCurrentTabLoading = activeTab === "owned" ? isOwnedLoading : isJoinedLoading;
+  const currentWorkspaces = activeTab === "owned" ? ownedWorkspaces : joinedWorkspaces;
+  const currentPage = activeTab === "owned" ? ownedPage : joinedPage;
+  const setCurrentPage = activeTab === "owned" ? setOwnedPage : setJoinedPage;
 
   return (
     <div className="space-y-6">
@@ -85,45 +89,106 @@ export default function WorkspaceDashboard() {
         </button>
       </div>
 
-      {workspaces.length === 0 ? (
-        <div className="glass-panel-glow border border-white/5 rounded-xl p-8 text-center max-w-2xl mx-auto mt-12 space-y-4">
-          <div className="inline-flex items-center justify-center p-4 rounded-full bg-primary/10 border border-primary/20 text-primary">
-            <LayoutDashboard className="w-8 h-8" />
-          </div>
-          <h3 className="text-lg font-semibold text-white">No active workspaces</h3>
-          <p className="text-sm text-zinc-400 max-w-sm mx-auto">
-            Create a workspace to start managing your projects, tasks, and team collaboration.
-          </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
-          >
-            Create Your First Workspace
-          </button>
+      {/* Tabs */}
+      <div className="flex border-b border-zinc-800/80 gap-6">
+        <button
+          onClick={() => setActiveTab("owned")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === "owned"
+              ? "border-primary text-white font-bold"
+              : "border-transparent text-zinc-400 hover:text-white"
+          }`}
+        >
+          Owned Workspaces
+        </button>
+        <button
+          onClick={() => setActiveTab("joined")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === "joined"
+              ? "border-primary text-white font-bold"
+              : "border-transparent text-zinc-400 hover:text-white"
+          }`}
+        >
+          Joined Workspaces
+        </button>
+      </div>
+
+      {isCurrentTabLoading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px]">
+          <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
+          <p className="text-zinc-400 text-sm">Loading workspaces...</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {workspaces.map((workspace) => (
-            <Link
-              key={workspace.id}
-              href={`/dashboard/workspace/${workspace.id}/projects`}
-              className="glass-panel-glow border border-white/5 rounded-xl p-6 hover:border-primary/30 hover:scale-[1.01] transition-all duration-300 block cursor-pointer"
+      ) : currentWorkspaces.length === 0 ? (
+        activeTab === "owned" ? (
+          <div className="glass-panel-glow border border-white/5 rounded-xl p-8 text-center max-w-2xl mx-auto mt-12 space-y-4">
+            <div className="inline-flex items-center justify-center p-4 rounded-full bg-primary/10 border border-primary/20 text-primary">
+              <LayoutDashboard className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">No owned workspaces</h3>
+            <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+              Create a workspace to start managing your projects, tasks, and team collaboration.
+            </p>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white px-4 py-2 rounded-lg text-xs transition-colors cursor-pointer"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
-                  <LayoutDashboard className="w-5 h-5" />
+              Create Your First Workspace
+            </button>
+          </div>
+        ) : (
+          <div className="glass-panel-glow border border-white/5 rounded-xl p-8 text-center max-w-2xl mx-auto mt-12 space-y-4">
+            <div className="inline-flex items-center justify-center p-4 rounded-full bg-primary/10 border border-primary/20 text-primary">
+              <LayoutDashboard className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">No joined workspaces</h3>
+            <p className="text-sm text-zinc-400 max-w-sm mx-auto">
+              You {"haven't"} joined any workspaces yet. Ask your team administrator to send you an invitation!
+            </p>
+          </div>
+        )
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentWorkspaces.map((workspace) => (
+              <Link
+                key={workspace.id}
+                href={`/dashboard/workspace/${workspace.id}/projects`}
+                className="glass-panel-glow border border-white/5 rounded-xl p-6 hover:border-primary/30 hover:scale-[1.01] transition-all duration-300 block cursor-pointer"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 text-primary">
+                    <LayoutDashboard className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                    Active
+                  </span>
                 </div>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
-                  Active
-                </span>
-              </div>
-              <h3 className="text-lg font-semibold text-white truncate">{workspace.name}</h3>
-              <p className="text-xs text-zinc-500 font-mono mt-1">/{workspace.slug}</p>
-              {workspace.description && (
-                <p className="text-sm text-zinc-400 mt-2 line-clamp-2">{workspace.description}</p>
-              )}
-            </Link>
-          ))}
+                <h3 className="text-lg font-semibold text-white truncate">{workspace.name}</h3>
+                <p className="text-xs text-zinc-500 font-mono mt-1">/{workspace.slug}</p>
+                {workspace.description && (
+                  <p className="text-sm text-zinc-400 mt-2 line-clamp-2">{workspace.description}</p>
+                )}
+              </Link>
+            ))}
+          </div>
+
+          {/* Pagination Arrows */}
+          <div className="flex justify-end items-center gap-3 pt-4">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-primary/30 disabled:opacity-40 disabled:hover:border-zinc-800 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => p + 1)}
+              disabled={currentWorkspaces.length < LIMIT}
+              className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-primary/30 disabled:opacity-40 disabled:hover:border-zinc-800 text-zinc-300 hover:text-white transition-all duration-200 cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 

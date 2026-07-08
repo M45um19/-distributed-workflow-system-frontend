@@ -2,13 +2,24 @@ import { apiClient } from "@/lib/api-client";
 import { CreateWorkspaceInput, WorkspaceResponse, SingleWorkspaceResponse } from "../types/workspace.types";
 
 export const workspaceService = {
-  async getWorkspaces(): Promise<WorkspaceResponse> {
-    const response = await apiClient.get<WorkspaceResponse>("/workspace");
+  async getWorkspaces(page?: number, limit?: number): Promise<WorkspaceResponse> {
+    const response = await apiClient.get<WorkspaceResponse>("/workspace", {
+      params: { page, limit },
+    });
     return response.data;
   },
 
-  async getOwnedWorkspaces(): Promise<WorkspaceResponse> {
-    const response = await apiClient.get<WorkspaceResponse>("/workspace/owned");
+  async getOwnedWorkspaces(page?: number, limit?: number): Promise<WorkspaceResponse> {
+    const response = await apiClient.get<WorkspaceResponse>("/workspace/owned", {
+      params: { page, limit },
+    });
+    return response.data;
+  },
+
+  async getJoinedWorkspaces(page?: number, limit?: number): Promise<WorkspaceResponse> {
+    const response = await apiClient.get<WorkspaceResponse>("/workspace/joined", {
+      params: { page, limit },
+    });
     return response.data;
   },
 

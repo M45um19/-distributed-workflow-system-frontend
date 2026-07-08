@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { Loader2, ArrowLeft, Briefcase } from "lucide-react";
-import { useOwnedWorkspaces } from "../hooks/use-workspace";
+import { useOwnedWorkspaces, useJoinedWorkspaces } from "../hooks/use-workspace";
 import ProjectList from "@/features/project/components/ProjectList";
 
 export default function WorkspaceDetails({ id }: { id: string }) {
-  const { data: workspacesData, isLoading: isWorkspacesLoading } = useOwnedWorkspaces();
+  const { data: ownedData, isLoading: isOwnedLoading } = useOwnedWorkspaces(1, 100);
+  const { data: joinedData, isLoading: isJoinedLoading } = useJoinedWorkspaces(1, 100);
 
-  const workspace = workspacesData?.data?.find((w) => w.id === id);
+  const workspace = ownedData?.data?.find((w) => w.id === id) || joinedData?.data?.find((w) => w.id === id);
+  const isWorkspaceLoading = isOwnedLoading || isJoinedLoading;
 
-  if (isWorkspacesLoading) {
+  if (isWorkspaceLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 text-primary animate-spin mb-2" />
